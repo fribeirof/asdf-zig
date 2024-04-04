@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -eo pipefail
+set -ueo pipefail
 
 # shellcheck disable=SC1091
 source "$(dirname "$0")/../lib/json.bash"
@@ -51,6 +51,7 @@ install_zig() {
   esac
 
   local json
+  echo "∗ Downloading index.json..."
   json=$(curl --fail --progress-bar --location https://ziglang.org/download/index.json)
 
   local download_url
@@ -71,6 +72,7 @@ install_zig() {
   local source_path="${install_path}/zig-${platform}-${architecture}-${version}.tar.xz"
 
   echo "∗ Downloading and installing Zig..."
+  echo "$download_url"
   curl --fail --progress-bar --location --create-dirs --output "$source_path" "$download_url"
 
   local actual_shasum

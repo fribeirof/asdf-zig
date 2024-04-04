@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 # JSON parsing stolen from https://github.com/dominictarr/JSON.sh
+set +u
 
 throw() {
   echo "$*" >&2
