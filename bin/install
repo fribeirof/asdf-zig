@@ -21,6 +21,56 @@ fail() {
   exit 1
 }
 
+# https://github.com/mlugg/setup-zig/blob/main/mirrors.json
+# If any of these mirrors are down, please open an issue!
+mirrors=(
+  "https://pkg.machengine.org/zig"
+  "https://zigmirror.hryx.net/zig"
+  "https://zig.linus.dev/zig"
+  "https://fs.liujiacai.net/zigbuilds"
+)
+mirror_length=${#mirrors[@]}
+
+download_and_check() {
+  local url=$1
+  local output=$2
+  local expected_shasum=$3
+
+  curl --fail --progress-bar --location --create-dirs --output "$output" "$url"
+
+  local actual_shasum
+  actual_shasum="$(shasum -a 256 "$output" | awk '{print $1}')"
+
+  if [ "${expected_shasum}" != "${actual_shasum}" ]; then
+    echo "Checksum not same, expected: ${expected_shasum}, actual: ${actual_shasum}, file: ${source_path}"
+    return 1
+  fi
+}
+
+download_zig() {
+  local download_url=$1
+  local source_path=$2
+  local expected_shasum=$3
+
+  local filename
+  filename=$(echo "$download_url" | awk -F '/' '{print $NF}')
+  local start_index=$((RANDOM % mirror_length))
+  # Loop through the mirrors
+  for i in $(seq 0 $((mirror_length - 1))); do
+    current_index=$(( (start_index + i) % mirror_length ))
+    local current_mirror=${mirrors[$current_index]}
+
+    local current_url="${current_mirror}/${filename}?source=zigcc-asdf-zig"
+    echo "Download from mirror $current_url"
+    download_and_check "${current_url}" "$source_path" "$expected_shasum" && return 0
+  done
+
+  echo "Download $download_url"
+  if ! download_and_check "$download_url" "$source_path" "$expected_shasum";then
+    fail "Checksum not same, expected: ${expected_shasum}, actual: ${actual_shasum}, file: ${source_path}"
+  fi
+}
+
 install_zig() {
   local install_type=$1
   local version=$2
@@ -52,7 +102,8 @@ install_zig() {
 
   local json
   echo "∗ Downloading index.json..."
-  json=$(curl --fail --progress-bar --location https://ziglang.org/download/index.json)
+  index_url="${ASDF_ZIG_INDEX_URL:-https://ziglang.org/download/index.json}"
+  json=$(curl --fail --progress-bar --location "${index_url}")
 
   local download_url
   download_url=$(
@@ -71,17 +122,10 @@ install_zig() {
 
   local source_path="${install_path}/zig-${platform}-${architecture}-${version}.tar.xz"
 
-  echo "∗ Downloading and installing Zig..."
-  echo "$download_url"
-  curl --fail --progress-bar --location --create-dirs --output "$source_path" "$download_url"
+  echo "∗ Downloading..."
+  download_zig "$download_url" "$source_path" "$expected_shasum"
 
-  local actual_shasum
-  actual_shasum="$(shasum -a 256 "$source_path" | awk '{print $1}')"
-
-  if [ "${expected_shasum}" != "${actual_shasum}" ]; then
-    fail "Checksum not same, expected: ${expected_shasum}, actual: ${actual_shasum}, file: ${source_path}"
-  fi
-
+  echo "∗ Extracting and install..."
   tar -xf "$source_path" -C "$install_path" --strip-components=1
   mkdir -p "${install_path}/bin"
   ln -s "${install_path}/zig" "${install_path}/bin/zig"
