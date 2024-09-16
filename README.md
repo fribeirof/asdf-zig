@@ -47,7 +47,7 @@ Currently there are(same with [setup-zig](https://github.com/mlugg/setup-zig/blo
 
 You can also configure where to download `index.json` with `ASDF_ZIG_INDEX_URL` env var, it's https://ziglang.org/download/index.json by default. Availables:
 
-- https://liujiacai.net/zigbuilds/index.json
+- https://fs.liujiacai.net/zigbuilds/index.json
 
 ## License
 
