@@ -26,13 +26,13 @@ json_tokenize() {
   local ESCAPE
   local CHAR
 
-  if echo "test string" | egrep -ao --color=never "test" >/dev/null 2>&1; then
-    GREP='egrep -ao --color=never'
+  if echo "test string" | grep -E -ao --color=never "test" >/dev/null 2>&1; then
+    GREP='grep -E -ao --color=never'
   else
-    GREP='egrep -ao'
+    GREP='grep -E -ao'
   fi
 
-  if echo "test string" | egrep -o "test" >/dev/null 2>&1; then
+  if echo "test string" | grep -E -o "test" >/dev/null 2>&1; then
     ESCAPE='(\\[^u[:cntrl:]]|\\u[0-9a-fA-F]{4})'
     CHAR='[^[:cntrl:]"\\]'
   else
@@ -49,7 +49,7 @@ json_tokenize() {
   # Force zsh to expand $A into multiple words
   local is_wordsplit_disabled=$(unsetopt 2>/dev/null | grep -c '^shwordsplit$')
   if [ $is_wordsplit_disabled != 0 ]; then setopt shwordsplit; fi
-  $GREP "$STRING|$NUMBER|$KEYWORD|$SPACE|." | egrep -v "^$SPACE$"
+  $GREP "$STRING|$NUMBER|$KEYWORD|$SPACE|." | grep -E -v "^$SPACE$"
   if [ $is_wordsplit_disabled != 0 ]; then unsetopt shwordsplit; fi
 }
 
