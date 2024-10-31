@@ -36,15 +36,22 @@ download_and_check() {
   local output=$2
   local expected_shasum=$3
 
-  echo "Download from $download_url"
+  echo "Download from $url"
   curl --fail --progress-bar --location --create-dirs --output "$output" "$url"
+
+  [ -f "$output" ] || { echo "Download failed."; return 1; }
 
   local actual_shasum
   actual_shasum="$(shasum -a 256 "$output" | awk '{print $1}')"
 
-  if [ "${expected_shasum}" != "${actual_shasum}" ]; then
-    echo "Checksum not same, expected: ${expected_shasum}, actual: ${actual_shasum}, file: ${source_path}"
-    return 1
+  if [ -z "$expected_shasum" ]; then
+    # TODO: add minisign check, as specific & non-master versions don't have sums in index.json
+    tar -tf "${output}" >/dev/null 2>&1
+  else
+    if [ "${expected_shasum}" != "${actual_shasum}" ]; then
+      echo "Checksum not same, expected: ${expected_shasum}, actual: ${actual_shasum}, file: ${source_path}"
+      return 1
+    fi
   fi
 }
 
@@ -60,8 +67,7 @@ download_zig() {
   for i in $(seq 0 $((mirror_length - 1))); do
     current_index=$(((start_index + i) % mirror_length))
     local current_mirror=${mirrors[$current_index]}
-
-    local current_url="${current_mirror}/${filename}?source=zigcc-asdf-zig"
+    local current_url="${current_mirror}/${filename}"
     download_and_check "${current_url}" "$source_path" "$expected_shasum" && return 0
   done
 
@@ -105,19 +111,25 @@ install_zig() {
   json=$(curl --fail --progress-bar --location "${index_url}")
 
   local download_url
-  download_url=$(
-    json_parse "$json" |
-      grep "\[\"$version\",\"${architecture}-${platform}\",\"tarball\"\]" |
-      awk 'NR==1 { print $2 }' |
-      tr -d '"'
-  )
+  if [[ $version == *"+"* ]]; then
+    download_url="https://ziglang.org/builds/zig-${platform}-${architecture}-${version}.tar.xz"
+  else
+    download_url=$(
+      json_parse "$json" |
+        grep "\[\"$version\",\"${architecture}-${platform}\",\"tarball\"\]" |
+        awk 'NR==1 { print $2 }' |
+        tr -d '"'
+    )
+  fi
+
   local expected_shasum
-  expected_shasum=$(
-    json_parse "$json" |
-      grep "\[\"$version\",\"${architecture}-${platform}\",\"shasum\"\]" |
-      awk '{print $2}' |
-      tr -d '"'
-  )
+  if json_parse "$json" | grep -q "\[\"$version\",\"${architecture}-${platform}\",\"shasum\"\]"; then
+    expected_shasum=$(
+      json_parse "$json" | grep "\[\"$version\",\"${architecture}-${platform}\",\"shasum\"\]" |
+        awk 'NR==1 { print $2 }' |
+        tr -d '"'
+    )
+  fi
 
   local source_path="${install_path}/zig-${platform}-${architecture}-${version}.tar.xz"
 
