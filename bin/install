@@ -114,7 +114,7 @@ install_zig() {
 
   local download_url
   if [[ $version == *"+"* ]]; then
-    download_url="https://ziglang.org/builds/zig-${platform}-${architecture}-${version}.tar.xz"
+    download_url="https://ziglang.org/builds/zig-${architecture}-${platform}-${version}.tar.xz"
   else
     download_url=$(
       json_parse "$json" |
@@ -133,7 +133,7 @@ install_zig() {
     )
   fi
 
-  local source_path="${install_path}/zig-${platform}-${architecture}-${version}.tar.xz"
+  local source_path="${install_path}/zig-${architecture}-${platform}-${version}.tar.xz"
 
   echo "∗ Downloading..."
   download_zig "$download_url" "$source_path" "$expected_shasum"
