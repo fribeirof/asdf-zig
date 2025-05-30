@@ -28,7 +28,6 @@ mirrors=(
   "https://zigmirror.hryx.net/zig"
   "https://zig.linus.dev/zig"
   "https://fs.liujiacai.net/zigbuilds"
-  "https://zigmirror.nesovic.dev/zig"
   "https://zig.nekos.space/zig"
 )
 mirror_length=${#mirrors[@]}
